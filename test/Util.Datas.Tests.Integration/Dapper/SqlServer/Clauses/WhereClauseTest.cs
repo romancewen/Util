@@ -64,13 +64,157 @@ namespace Util.Datas.Tests.Dapper.SqlServer.Clauses {
         #region Or(连接查询条件)
 
         /// <summary>
-        /// 连接查询条件
+        /// Or查询条件
         /// </summary>
         [Fact]
         public void TestOr() {
             _clause.Where( "Age", 1 );
             _clause.Or( new LessCondition( "a", "@a" ) );
             Assert.Equal( "Where ([Age]=@_p_0 Or a<@a)", GetSql() );
+        }
+
+        /// <summary>
+        /// Or查询条件 - lambda - 一个条件
+        /// </summary>
+        [Fact]
+        public void TestOr_2() {
+            //结果
+            var result = new String();
+            result.Append( "Where [Email] In (@_p_0,@_p_1)" );
+
+            //执行
+            var list = new List<string> { "a", "b" };
+            _clause.Or<Sample>( t => list.Contains( t.Email ) );
+
+            //验证
+            Assert.Equal( result.ToString(), GetSql() );
+        }
+
+        /// <summary>
+        /// Or查询条件 - lambda - 2个条件
+        /// </summary>
+        [Fact]
+        public void TestOr_3() {
+            //结果
+            var result = new String();
+            result.Append( "Where ([Email] In (@_p_0,@_p_1) Or [Url]=@_p_2)" );
+
+            //执行
+            var list = new List<string> { "a", "b" };
+            _clause.Or<Sample>( t => list.Contains( t.Email ), t => t.Url == "a" );
+
+            //验证
+            Assert.Equal( result.ToString(), GetSql() );
+        }
+
+        /// <summary>
+        /// Or查询条件 - lambda - 2个条件 - 参数值为空时添加条件
+        /// </summary>
+        [Fact]
+        public void TestOr_4() {
+            //结果
+            var result = new String();
+            result.Append( "Where ([Email] In (@_p_0,@_p_1) Or [Url]=@_p_2)" );
+
+            //执行
+            var list = new List<string> { "a", "b" };
+            _clause.Or<Sample>( t => list.Contains( t.Email ), t => t.Url == "" );
+
+            //验证
+            Assert.Equal( result.ToString(), GetSql() );
+        }
+
+        /// <summary>
+        /// Or查询条件 - lambda - And和Or混合添加条件
+        /// </summary>
+        [Fact]
+        public void TestOr_5() {
+            //结果
+            var result = new String();
+            result.Append( "Where (([Email]=@_p_0 Or " );
+            result.Append( "[Email] In (@_p_1,@_p_2)) Or [Url]=@_p_3) " );
+            result.Append( "And [Url]=@_p_4" );
+
+            //执行
+            var list = new List<string> { "a", "b" };
+            _clause.Where<Sample>( t => t.Email == "b" );
+            _clause.Or<Sample>( t => list.Contains( t.Email ), t => t.Url == "a" );
+            _clause.Where<Sample>( t => t.Url == "c" );
+
+            //验证
+            Assert.Equal( result.ToString(), GetSql() );
+        }
+
+        /// <summary>
+        /// Or查询条件 - lambda - 一个条件
+        /// </summary>
+        [Fact]
+        public void TestOrIfNotEmpty_1() {
+            //结果
+            var result = new String();
+            result.Append( "Where [Email] In (@_p_0,@_p_1)" );
+
+            //执行
+            var list = new List<string> { "a", "b" };
+            _clause.OrIfNotEmpty<Sample>( t => list.Contains( t.Email ) );
+
+            //验证
+            Assert.Equal( result.ToString(), GetSql() );
+        }
+
+        /// <summary>
+        /// Or查询条件 - lambda - 2个条件
+        /// </summary>
+        [Fact]
+        public void TestOrIfNotEmpty_2() {
+            //结果
+            var result = new String();
+            result.Append( "Where ([Email] In (@_p_0,@_p_1) Or [Url]=@_p_2)" );
+
+            //执行
+            var list = new List<string> { "a", "b" };
+            _clause.OrIfNotEmpty<Sample>( t => list.Contains( t.Email ), t => t.Url == "a" );
+
+            //验证
+            Assert.Equal( result.ToString(), GetSql() );
+        }
+
+        /// <summary>
+        /// Or查询条件 - lambda - 2个条件 - 参数值为空时不添加条件
+        /// </summary>
+        [Fact]
+        public void TestOrIfNotEmpty_3() {
+            //结果
+            var result = new String();
+            result.Append( "Where [Email] In (@_p_0,@_p_1)" );
+
+            //执行
+            var list = new List<string> { "a", "b" };
+            _clause.OrIfNotEmpty<Sample>( t => list.Contains( t.Email ), t => t.Url == "" );
+
+            //验证
+            Assert.Equal( result.ToString(), GetSql() );
+        }
+
+        /// <summary>
+        /// Or查询条件 - lambda - And和Or混合添加条件
+        /// </summary>
+        [Fact]
+        public void TestOrIfNotEmpty_4() {
+            //结果
+            var result = new String();
+            result.Append( "Where (([Email]=@_p_0 Or " );
+            result.Append( "[Email] In (@_p_1,@_p_2)) Or [Url]=@_p_3) " );
+            result.Append( "And [Url]=@_p_4" );
+
+            //执行
+            var list = new List<string> { "a", "b" };
+            _clause.Where<Sample>( t => t.Email == "b" );
+            _clause.OrIfNotEmpty<Sample>( t => list.Contains( t.Email ), t => t.Url == "a" );
+            _clause.Where<Sample>( t => t.Url == "c" );
+
+            //验证
+            Assert.Equal( result.ToString(), GetSql() );
         }
 
         #endregion
@@ -923,6 +1067,33 @@ namespace Util.Datas.Tests.Dapper.SqlServer.Clauses {
             //验证
             Assert.Equal( max, _parameterManager.GetParams()["@_p_0"] );
             Assert.Equal( result.ToString(), GetSql() );
+        }
+
+        #endregion
+
+        #region Clone(复制副本)
+
+        /// <summary>
+        /// 复制副本
+        /// </summary>
+        [Fact]
+        public void TestClone_1() {
+            _clause.Where( "Name", "a" );
+
+            //复制副本
+            var copy = _clause.Clone( null, _parameterManager.Clone() );
+            Assert.Equal( "Where [Name]=@_p_0", GetSql() );
+            Assert.Equal( "Where [Name]=@_p_0", copy.ToSql() );
+
+            //修改副本
+            copy.Where( "Code",1 );
+            Assert.Equal( "Where [Name]=@_p_0", GetSql() );
+            Assert.Equal( "Where [Name]=@_p_0 And [Code]=@_p_1", copy.ToSql() );
+
+            //修改原对象
+            _clause.Where( "Age", 1 );
+            Assert.Equal( "Where [Name]=@_p_0 And [Age]=@_p_1", GetSql() );
+            Assert.Equal( "Where [Name]=@_p_0 And [Code]=@_p_1", copy.ToSql() );
         }
 
         #endregion

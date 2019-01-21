@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using Util.Datas.Matedatas;
+using Util.Datas.Sql.Queries;
 using Util.Datas.Sql.Queries.Builders.Abstractions;
 using Util.Datas.Sql.Queries.Builders.Core;
 
@@ -14,6 +15,15 @@ namespace Util.Datas.Dapper.SqlServer {
         /// <param name="matedata">实体元数据解析器</param>
         /// <param name="parameterManager">参数管理器</param>
         public SqlServerBuilder( IEntityMatedata matedata = null, IParameterManager parameterManager = null ) : base( matedata, parameterManager ) {
+        }
+
+        /// <summary>
+        /// 复制Sql生成器
+        /// </summary>
+        public override ISqlBuilder Clone() {
+            var sqlBuilder = new SqlServerBuilder();
+            sqlBuilder.Clone( this );
+            return sqlBuilder;
         }
 
         /// <summary>

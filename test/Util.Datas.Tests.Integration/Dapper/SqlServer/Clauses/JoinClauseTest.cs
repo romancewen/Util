@@ -20,7 +20,7 @@ namespace Util.Datas.Tests.Dapper.SqlServer.Clauses {
         /// 测试初始化
         /// </summary>
         public JoinClauseTest() {
-            _clause = new JoinClause( new SqlServerDialect(), new EntityResolver(),new EntityAliasRegister() );
+            _clause = new JoinClause( new SqlServerBuilder(), new SqlServerDialect(), new EntityResolver(), new EntityAliasRegister() );
         }
 
         /// <summary>
@@ -368,6 +368,72 @@ namespace Util.Datas.Tests.Dapper.SqlServer.Clauses {
         }
 
         /// <summary>
+        /// 表连接条件 - 值为数字
+        /// </summary>
+        [Fact]
+        public void TestOn_12() {
+            //结果
+            var result = new String();
+            result.Append( "Join [Sample] As [t] " );
+            result.AppendLine( "On [a].[id]=[b].[id] " );
+            result.Append( "Join [Sample2] As [t2] " );
+            result.Append( "On [t].[ShortValue]>[t2].[IntValue] And [t].[IntValue]=1" );
+
+            //操作
+            _clause.Join<Sample>( "t" );
+            _clause.On( "a.id", "b.id" );
+            _clause.Join<Sample2>( "t2" );
+            _clause.On<Sample, Sample2>( ( l, r ) => l.ShortValue > r.IntValue && l.IntValue == 1 );
+
+            //验证
+            Assert.Equal( result.ToString(), GetSql() );
+        }
+
+        /// <summary>
+        /// 表连接条件 - 值为数字 - 数字在左边
+        /// </summary>
+        [Fact]
+        public void TestOn_13() {
+            //结果
+            var result = new String();
+            result.Append( "Join [Sample] As [t] " );
+            result.AppendLine( "On [a].[id]=[b].[id] " );
+            result.Append( "Join [Sample2] As [t2] " );
+            result.Append( "On [t].[ShortValue]>[t2].[IntValue] And 1=[t].[IntValue]" );
+
+            //操作
+            _clause.Join<Sample>( "t" );
+            _clause.On( "a.id", "b.id" );
+            _clause.Join<Sample2>( "t2" );
+            _clause.On<Sample, Sample2>( ( l, r ) => l.ShortValue > r.IntValue && 1 == l.IntValue );
+
+            //验证
+            Assert.Equal( result.ToString(), GetSql() );
+        }
+
+        /// <summary>
+        /// 表连接条件 - 交换左右操作数
+        /// </summary>
+        [Fact]
+        public void TestOn_14() {
+            //结果
+            var result = new String();
+            result.Append( "Join [Sample] As [t] " );
+            result.AppendLine( "On [a].[id]=[b].[id] " );
+            result.Append( "Join [Sample2] As [t2] " );
+            result.Append( "On [t2].[IntValue]>[t].[ShortValue]" );
+
+            //操作
+            _clause.Join<Sample>( "t" );
+            _clause.On( "a.id", "b.id" );
+            _clause.Join<Sample2>( "t2" );
+            _clause.On<Sample, Sample2>( ( l, r ) => r.IntValue > l.ShortValue );
+
+            //验证
+            Assert.Equal( result.ToString(), GetSql() );
+        }
+
+        /// <summary>
         /// 左外连接
         /// </summary>
         [Fact]
@@ -457,6 +523,25 @@ namespace Util.Datas.Tests.Dapper.SqlServer.Clauses {
 
             //验证
             Assert.Equal( result.ToString(), GetSql() );
+        }
+
+        /// <summary>
+        /// 复制
+        /// </summary>
+        [Fact]
+        public void TestClone_1() {
+            _clause.Join( "b" );
+            _clause.On( "a.A","b.B" );
+
+            //复制副本
+            var copy = _clause.Clone( null, null );
+            Assert.Equal( "Join [b] On [a].[A]=[b].[B]", GetSql() );
+            Assert.Equal( "Join [b] On [a].[A]=[b].[B]", copy.ToSql() );
+
+            //修改副本
+            copy.On( "a.C","b.D" );
+            Assert.Equal( "Join [b] On [a].[A]=[b].[B]", GetSql() );
+            Assert.Equal( "Join [b] On [a].[A]=[b].[B] And [a].[C]=[b].[D]", copy.ToSql() );
         }
     }
 }

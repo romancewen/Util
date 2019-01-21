@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using Util.Datas.Matedatas;
+using Util.Datas.Sql.Queries;
 using Util.Datas.Sql.Queries.Builders.Abstractions;
 using Util.Datas.Sql.Queries.Builders.Core;
 
@@ -17,10 +18,26 @@ namespace Util.Datas.Dapper.PgSql {
         }
 
         /// <summary>
+        /// 复制Sql生成器
+        /// </summary>
+        public override ISqlBuilder Clone() {
+            var sqlBuilder = new PgSqlBuilder();
+            sqlBuilder.Clone( this );
+            return sqlBuilder;
+        }
+
+        /// <summary>
         /// 获取Sql方言
         /// </summary>
         protected override IDialect GetDialect() {
             return new PgSqlDialect();
+        }
+
+        /// <summary>
+        /// 获取参数字面值解析器
+        /// </summary>
+        protected override IParamLiteralsResolver GetParamLiteralsResolver() {
+            return new PgSqlParamLiteralsResolver();
         }
 
         /// <summary>

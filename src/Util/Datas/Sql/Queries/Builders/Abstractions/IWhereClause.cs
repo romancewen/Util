@@ -9,6 +9,12 @@ namespace Util.Datas.Sql.Queries.Builders.Abstractions {
     /// </summary>
     public interface IWhereClause : ICondition {
         /// <summary>
+        /// 复制Where子句
+        /// </summary>
+        /// <param name="register">实体别名注册器</param>
+        /// <param name="parameterManager">参数管理器</param>
+        IWhereClause Clone( IEntityAliasRegister register, IParameterManager parameterManager );
+        /// <summary>
         /// And连接条件
         /// </summary>
         /// <param name="condition">查询条件</param>
@@ -18,6 +24,16 @@ namespace Util.Datas.Sql.Queries.Builders.Abstractions {
         /// </summary>
         /// <param name="condition">查询条件</param>
         void Or( ICondition condition );
+        /// <summary>
+        /// Or连接条件
+        /// </summary>
+        /// <param name="conditions">查询条件</param>
+        void Or<TEntity>( params Expression<Func<TEntity, bool>>[] conditions );
+        /// <summary>
+        /// Or连接条件
+        /// </summary>
+        /// <param name="conditions">查询条件,如果表达式中的值为空，则忽略该查询条件</param>
+        void OrIfNotEmpty<TEntity>( params Expression<Func<TEntity, bool>>[] conditions );
         /// <summary>
         /// 设置查询条件
         /// </summary>
@@ -218,10 +234,6 @@ namespace Util.Datas.Sql.Queries.Builders.Abstractions {
         /// <param name="expression">列名表达式</param>
         /// <param name="values">值集合</param>
         void NotIn<TEntity>( Expression<Func<TEntity, object>> expression, IEnumerable<object> values ) where TEntity : class;
-        /// <summary>
-        /// 复制Where子句
-        /// </summary>
-        IWhereClause Clone();
         /// <summary>
         /// 输出Sql
         /// </summary>

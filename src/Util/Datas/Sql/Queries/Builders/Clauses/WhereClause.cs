@@ -15,22 +15,6 @@ namespace Util.Datas.Sql.Queries.Builders.Clauses {
     /// </summary>
     public class WhereClause : IWhereClause {
         /// <summary>
-        /// 方言
-        /// </summary>
-        private readonly IDialect _dialect;
-        /// <summary>
-        /// 实体解析器
-        /// </summary>
-        private readonly IEntityResolver _resolver;
-        /// <summary>
-        /// 实体别名注册器
-        /// </summary>
-        private readonly IEntityAliasRegister _register;
-        /// <summary>
-        /// 参数管理器
-        /// </summary>
-        private readonly IParameterManager _parameterManager;
-        /// <summary>
         /// 辅助操作
         /// </summary>
         private readonly Helper _helper;
@@ -38,6 +22,14 @@ namespace Util.Datas.Sql.Queries.Builders.Clauses {
         /// 谓词表达式解析器
         /// </summary>
         private readonly PredicateExpressionResolver _expressionResolver;
+        /// <summary>
+        /// 方言
+        /// </summary>
+        private readonly IDialect _dialect;
+        /// <summary>
+        /// 实体解析器
+        /// </summary>
+        private readonly IEntityResolver _resolver;
         /// <summary>
         /// 查询条件
         /// </summary>
@@ -54,8 +46,6 @@ namespace Util.Datas.Sql.Queries.Builders.Clauses {
         public WhereClause( IDialect dialect, IEntityResolver resolver, IEntityAliasRegister register, IParameterManager parameterManager, ICondition condition = null ) {
             _dialect = dialect;
             _resolver = resolver;
-            _register = register;
-            _parameterManager = parameterManager;
             _condition = condition;
             _helper = new Helper( dialect, resolver, register, parameterManager );
             _expressionResolver = new PredicateExpressionResolver( dialect, resolver, register, parameterManager );
@@ -64,8 +54,10 @@ namespace Util.Datas.Sql.Queries.Builders.Clauses {
         /// <summary>
         /// 复制Where子句
         /// </summary>
-        public IWhereClause Clone() {
-            return new WhereClause( _dialect, _resolver, _register, _parameterManager, new SqlCondition( _condition?.GetCondition() ) );
+        /// <param name="register">实体别名注册器</param>
+        /// <param name="parameterManager">参数管理器</param>
+        public virtual IWhereClause Clone( IEntityAliasRegister register, IParameterManager parameterManager ) {
+            return new WhereClause( _dialect, _resolver, register, parameterManager, new SqlCondition( _condition?.GetCondition() ) );
         }
 
         /// <summary>
@@ -82,6 +74,44 @@ namespace Util.Datas.Sql.Queries.Builders.Clauses {
         /// <param name="condition">查询条件</param>
         public void Or( ICondition condition ) {
             _condition = new OrCondition( _condition, condition );
+        }
+
+        /// <summary>
+        /// Or连接条件
+        /// </summary>
+        /// <param name="conditions">查询条件</param>
+        public void Or<TEntity>( params Expression<Func<TEntity, bool>>[] conditions ) {
+            if( conditions == null )
+                return;
+            foreach( var condition in conditions ) {
+                if( condition == null )
+                    continue;
+                var predicate = _expressionResolver.Resolve( condition );
+                if( predicate == null )
+                    continue;
+                Or( predicate );
+            }
+        }
+
+        /// <summary>
+        /// Or连接条件
+        /// </summary>
+        /// <param name="conditions">查询条件,如果表达式中的值为空，则忽略该查询条件</param>
+        public void OrIfNotEmpty<TEntity>( params Expression<Func<TEntity, bool>>[] conditions ) {
+            if( conditions == null )
+                return;
+            foreach( var condition in conditions ) {
+                if( condition == null )
+                    continue;
+                if( Lambda.GetConditionCount( condition ) > 1 )
+                    throw new InvalidOperationException( string.Format( LibraryResource.OnlyOnePredicate, condition ) );
+                if( string.IsNullOrWhiteSpace( Lambda.GetValue( condition ).SafeString() ) )
+                    continue;
+                var predicate = _expressionResolver.Resolve( condition );
+                if( predicate == null )
+                    continue;
+                Or( predicate );
+            }
         }
 
         /// <summary>
